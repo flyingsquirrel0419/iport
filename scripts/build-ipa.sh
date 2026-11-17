@@ -8,6 +8,7 @@
 #   RUNTIME=1 scripts/build-ipa.sh  with Runtime/ (make runtime first)
 set -euo pipefail
 cd "$(dirname "$0")/.."
+ROOT=$PWD
 
 [[ "$(uname)" == Darwin ]] || { echo "build-ipa: needs macOS with Xcode (or use the GitHub Actions workflow: no Mac needed)"; exit 1; }
 command -v xcodebuild >/dev/null || { echo "build-ipa: install Xcode"; exit 1; }
@@ -16,6 +17,13 @@ if ! command -v xcodegen >/dev/null; then
     brew install xcodegen
 fi
 [[ -f vendor/playport/app/SteamClient/Package.swift ]] || git submodule update --init vendor/playport
+# iPort's small fixes on the pinned Playport tree (patches/playport), applied once.
+for p in patches/playport/*.patch; do
+    [[ -f "$p" ]] || continue
+    if git -C vendor/playport apply --check "$ROOT/$p" 2>/dev/null; then
+        git -C vendor/playport apply "$ROOT/$p" && echo "build-ipa: applied $p"
+    fi
+done
 
 if [[ "${RUNTIME:-0}" == 1 ]]; then python3 scripts/gen-project.py --runtime; else python3 scripts/gen-project.py; fi
 xcodegen generate --spec project.gen.yml --project . --quiet
