@@ -1,0 +1,55 @@
+# XcodeGen spec for iPort. `make ipa` generates iPort.xcodeproj from this and
+# builds an unsigned IPA. `make ipa RUNTIME=1` builds from the same spec with
+# the Windows runtime linked in: scripts/gen-project.py replaces each
+# "# @runtime-…" marker below with the runtime's lines (Runtime/, from
+# `make runtime`). Without the runtime every marker stays a comment.
+name: iPort
+options:
+  bundleIdPrefix: app.iport
+  deploymentTarget:
+    iOS: "18.0"
+  createIntermediateGroups: true
+  developmentLanguage: en
+settings:
+  base:
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    SWIFT_VERSION: "5.0"
+    ENABLE_USER_SCRIPT_SANDBOXING: NO
+packages:
+  IPortCore:
+    path: Packages/IPortCore
+  SteamClient:
+    path: vendor/playport/app/SteamClient
+targets:
+  iPort:
+    type: application
+    platform: iOS
+    sources:
+      - path: App/Sources
+      - path: App/RuntimeBridge
+        excludes: ["Bridging-Header.h"]
+      - path: App/Resources
+      # @runtime-sources
+    settings:
+      base:
+        PRODUCT_NAME: iPort
+        PRODUCT_BUNDLE_IDENTIFIER: app.iport.iPort
+        INFOPLIST_FILE: App/Info.plist
+        CODE_SIGN_ENTITLEMENTS: App/iPort.entitlements
+        SWIFT_OBJC_BRIDGING_HEADER: App/RuntimeBridge/Bridging-Header.h
+        HEADER_SEARCH_PATHS: ["$(SRCROOT)/App/RuntimeBridge/include"] # @runtime-headers
+        TARGETED_DEVICE_FAMILY: "1,2"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        SUPPORTS_MACCATALYST: NO
+        ENABLE_BITCODE: NO
+        # @runtime-settings
+    dependencies:
+      - package: IPortCore
+      - package: SteamClient
+        product: SteamClientKit
+      - sdk: GameController.framework
+      - sdk: CoreImage.framework
+      - sdk: Network.framework
+      - sdk: UserNotifications.framework
+      # @runtime-dependencies

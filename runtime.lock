@@ -1,0 +1,4 @@
+# The prebuilt Windows runtime `make runtime` downloads (scripts/fetch-runtime.sh).
+# Fill in after publishing dist/iport-runtime-<commit>.tar.gz from `make runtime-from-source`:
+# url=https://github.com/<you>/iport/releases/download/runtime-<commit>/iport-runtime-<commit>.tar.gz
+# sha256=<sha256 printed by scripts/pack-runtime.sh>

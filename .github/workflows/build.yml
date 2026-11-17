@@ -1,0 +1,51 @@
+# Build the IPA on GitHub's macOS runners: no Mac needed.
+# Fork the repository, then Actions › Build IPA › Run workflow. The IPA is the
+# run's artifact; sideload it with SideStore, AltStore, Sideloadly or LiveContainer.
+name: Build IPA
+
+on:
+  workflow_dispatch:
+    inputs:
+      runtime:
+        description: "Include the Windows runtime (needs runtime.lock or the IPORT_RUNTIME_URL variable)"
+        type: boolean
+        default: false
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  core-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: swift-actions/setup-swift@v2
+        with:
+          swift-version: "6.1"
+      - run: swift test
+        working-directory: Packages/IPortCore
+
+  ipa:
+    runs-on: macos-15
+    needs: core-tests
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true          # vendor/playport only (not its upstream trees)
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+      - run: brew install xcodegen
+      - name: Fetch the Windows runtime
+        if: ${{ inputs.runtime }}
+        env:
+          IPORT_RUNTIME_URL: ${{ vars.IPORT_RUNTIME_URL }}
+          IPORT_RUNTIME_SHA256: ${{ vars.IPORT_RUNTIME_SHA256 }}
+        run: scripts/fetch-runtime.sh
+      - name: Build
+        run: RUNTIME=${{ inputs.runtime && '1' || '0' }} scripts/build-ipa.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: iPort${{ inputs.runtime && '-runtime' || '' }}-ipa
+          path: dist/iPort.ipa
+          if-no-files-found: error
